@@ -1,0 +1,121 @@
+def pivot_data():
+    # Labs.
+    mysql_connection = mysql.connector.connect(host=database_host, database=database_name, user=database_user,
+                                               password=database_password,
+                                               auth_plugin=database_authentication_plugin)
+    sql_query = "select * from lab_results_csv limit 10;"
+    cursor = mysql_connection.cursor()
+    cursor.execute(sql_query)
+    records = cursor.fetchall()
+    cursor.close()
+    mysql_connection.close()
+    labs_dataframe = pandas.DataFrame(records, dtype=str,
+                                      columns=['id', 'patient_medical_record', 'encounter', 'value_date',
+                                               'value_time', 'value_unit', 'age', 'value_measurement', 'value'])
+    # Display Data
+    # print(tabulate(labs_dataframe, headers='keys', tablefmt='psql'))
+
+    # Vitals.
+    mysql_connection = mysql.connector.connect(host=database_host, database=database_name, user=database_user,
+                                               password=database_password,
+                                               auth_plugin=database_authentication_plugin)
+    sql_query = "select * from vitals_results_2_csv limit 10;"
+    cursor = mysql_connection.cursor()
+    cursor.execute(sql_query)
+    records = cursor.fetchall()
+    cursor.close()
+    mysql_connection.close()
+    vitals_dataframe = pandas.DataFrame(records, dtype=str,
+                                          columns=['id', 'patient_medical_record', 'encounter', 'value_date',
+                                                   'value_time', 'value_unit', 'age', 'value_measurement', 'value'])
+    #Display Data
+    # print(tabulate(vitals_dataframe, headers='keys', tablefmt='psql'))
+
+    # Merge Vitals and Labs together
+    vitals_labs_dataframe = pandas.concat([vitals_dataframe, labs_dataframe], ignore_index=True)
+
+    # Pivot.
+    pivot_indexes = ['patient_medical_record', 'encounter', 'value_date', 'value_time', 'value_unit', 'age']
+    pivot_values = ['value']
+    pivot_columns = ['value_measurement']
+    pivot_dataframe = pandas.pivot_table(vitals_labs_dataframe, values=pivot_values, index=pivot_indexes,
+                                         columns=pivot_columns, aggfunc=numpy.sum)
+    pivot_dataframe = pivot_dataframe.fillna(method='ffill')
+    pivot_dataframe = pivot_dataframe.fillna(method='backfill')
+    pivot_dataframe = pivot_dataframe.reset_index()   #Converts indexes to columns
+    # Display data
+    print(tabulate(pivot_dataframe, headers='keys', tablefmt='psql'))
+
+    pivot_collection = []
+
+    # Iterate over the collection. Making sure that value is in correct format
+    for index, row in pivot_dataframe.iterrows():
+        pivot_item = []
+        medical_record_number = str(row[0])
+        epic_encounter_csn = str(row[1])
+        value_date = str(row[2])
+        value_time = str(row[3])
+        value_unit = str(row[4])
+        age_in_years = str(row[5])
+        systolic_blood_pressure = cleanse_systolic_blood_pressure(str(row[6]))
+        carbon_dioxide = str(row[7])
+        chloride = str(row[8])
+        glucose = str(row[9])
+        height = str(row[10])
+        hematocrit = str(row[11])
+        hemoglobin = str(row[12])
+        pulse = str(row[13])
+        pulse_oximetry = str(row[14])
+        platelet_count = str(row[15])
+        red_blood_cell_count = str(row[16])
+        respirations = str(row[17])
+        temperature = str(row[18])
+        white_blood_cell_count = str(row[19])
+        weight = str(row[20])
+        pivot_item.append(medical_record_number)
+        pivot_item.append(epic_encounter_csn)
+        pivot_item.append(value_date)
+        pivot_item.append(value_time)
+        pivot_item.append(value_unit)
+        pivot_item.append(age_in_years)
+        pivot_item.append(systolic_blood_pressure)
+        pivot_item.append(carbon_dioxide)
+        pivot_item.append(chloride)
+        pivot_item.append(glucose)
+        pivot_item.append(height)
+        pivot_item.append(hematocrit)
+        pivot_item.append(hemoglobin)
+        pivot_item.append(pulse)
+        pivot_item.append(pulse_oximetry)
+        pivot_item.append(platelet_count)
+        pivot_item.append(red_blood_cell_count)
+        pivot_item.append(respirations)
+        pivot_item.append(temperature)
+        pivot_item.append(white_blood_cell_count)
+        pivot_item.append(weight)
+        pivot_collection.append(pivot_item)
+
+        # Validate data to check proper values in iterated rows
+        # print(medical_record_number,
+        # epic_encounter_csn,
+        # value_date,
+        # value_time,
+        # value_unit,
+        # age_in_years,
+        # systolic_blood_pressure,
+        # carbon_dioxide,
+        # chloride,
+        # glucose,
+        # height,
+        # hematocrit,
+        # hemoglobin,
+        # pulse,
+        # pulse_oximetry,
+        # platelet_count,
+        # red_blood_cell_count,
+        # respirations,
+        # temperature,
+        # white_blood_cell_count,
+        # weight)
+        break
+    print(str(pivot_collection))
